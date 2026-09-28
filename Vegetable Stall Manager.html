@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vegetable Stall Manager</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#eef2e8;--card:#fbfcf8;--ink:#1f2a1c;--mute:#5d6b58;--leaf:#2f6b3a;--leaf-ink:#fff;--chili:#c2392b;--line:#d5dcc9;--warn:#fff1c9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b12;--card:#1d271a;--ink:#e8efe2;--mute:#9fb096;--leaf:#6fbf7d;--leaf-ink:#0f1a0e;--chili:#ff8a7a;--line:#2f3d2b;--warn:#3d3512}}
+:root[data-theme="dark"]{--bg:#141b12;--card:#1d271a;--ink:#e8efe2;--mute:#9fb096;--leaf:#6fbf7d;--leaf-ink:#0f1a0e;--chili:#ff8a7a;--line:#2f3d2b;--warn:#3d3512}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.8rem,5vw,2.6rem);font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+h2{font-size:1.2rem;margin:0 0 12px}
+.sub{color:var(--mute);margin:0 0 20px}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;flex:1;min-width:140px}
+.stat b{display:block;font-size:1.5rem;color:var(--leaf)}
+.stat span{color:var(--mute);font-size:.9rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.full{grid-column:1/-1}
+label{display:block;font-size:.85rem;color:var(--mute);margin:0 0 4px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--leaf);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px}
+.row>div{flex:1;min-width:110px}
+button{cursor:pointer;border:0;border-radius:8px;padding:9px 16px;background:var(--leaf);color:var(--leaf-ink);font-weight:600}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.del{background:transparent;color:var(--chili);padding:4px 8px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right}
+.low{color:var(--chili);font-weight:600}
+.msg{padding:9px 12px;border-radius:8px;margin:0 0 10px;background:var(--warn)}
+.msg.err{border-left:4px solid var(--chili)}
+.msg.ok{border-left:4px solid var(--leaf)}
+.msg:empty{display:none}
+.bill{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92rem;background:var(--bg);border:1px dashed var(--mute);border-radius:8px;padding:14px;white-space:pre-wrap;overflow-x:auto}
+.empty{color:var(--mute);margin:6px 0}
+@media print{body *{visibility:hidden}#bill,#bill *{visibility:visible}#bill{position:absolute;left:0;top:0;width:100%}}
+</style>
+</head>
+<body>
+<main>
+<h1>Vegetable Stall Manager</h1>
+<p class="sub">Keep your prices and stock, take orders, and print bills.</p>
+
+<div class="stats">
+  <div class="stat"><b id="sItems">0</b><span>Vegetables</span></div>
+  <div class="stat"><b id="sKg">0</b><span>Total stock (kg)</span></div>
+  <div class="stat"><b id="sSales">₹0</b><span>Sales today</span></div>
+  <div class="stat"><b id="sBills">0</b><span>Bills today</span></div>
+</div>
+
+<div class="grid">
+<section class="full">
+  <h2>Stock and prices</h2>
+  <div id="stockMsg" class="msg" role="status"></div>
+  <div class="row">
+    <div><label for="vName">Vegetable name</label><input id="vName" placeholder="e.g. Carrot"></div>
+    <div><label for="vPrice">Price per kg (₹)</label><input id="vPrice" type="number" min="0" step="0.5"></div>
+    <div><label for="vStock">Stock (kg)</label><input id="vStock" type="number" min="0" step="0.5"></div>
+    <div style="flex:0"><button id="saveVeg">Save vegetable</button></div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Vegetable</th><th class="n">Price/kg</th><th class="n">Stock (kg)</th><th></th></tr></thead>
+    <tbody id="stockBody"></tbody>
+  </table></div>
+  <p class="sub" style="margin:8px 0 0;font-size:.85rem">Saving a name that already exists updates its price and sets its stock to the new number. Stock under 5 kg shows in red.</p>
+</section>
+
+<section>
+  <h2>New order</h2>
+  <div id="orderMsg" class="msg" role="status"></div>
+  <div class="row">
+    <div style="flex:2"><label for="oVeg">Vegetable</label><select id="oVeg"></select></div>
+    <div><label for="oQty">Quantity (kg)</label><input id="oQty" type="number" min="0" step="0.5" value="1"></div>
+  </div>
+  <button id="addItem">Add to order</button>
+  <div class="tw" style="margin-top:12px"><table>
+    <thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Price</th><th class="n">Total</th><th></th></tr></thead>
+    <tbody id="cartBody"></tbody>
+  </table></div>
+  <p id="cartTotal" style="font-weight:800;font-size:1.15rem;margin:10px 0">Total: ₹0</p>
+  <div class="row" style="margin-bottom:0">
+    <div style="flex:0"><button id="makeBill">Confirm and bill</button></div>
+    <div style="flex:0"><button class="ghost" id="clearCart">Clear order</button></div>
+  </div>
+</section>
+
+<section>
+  <h2>Bill</h2>
+  <div id="billBox"><p class="empty">The bill appears here after you confirm an order.</p></div>
+  <div class="row" style="margin:10px 0 0"><div style="flex:0"><button class="ghost" id="printBill" hidden>Print bill</button></div></div>
+</section>
+
+<section class="full">
+  <h2>Today's bills</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Bill no.</th><th>Time</th><th>Items</th><th class="n">Total</th></tr></thead>
+    <tbody id="histBody"></tbody>
+  </table></div>
+  <p class="sub" style="margin:8px 0 0"><button class="ghost" id="resetAll">Reset all data</button></p>
+</section>
+</div>
+</main>
+
+<script>
+(function(){
+var KEY="vegStallV1";
+var state={veg:[{name:"Tomato",price:40,stock:25},{name:"Onion",price:50,stock:30},{name:"Potato",price:35,stock:40}],bills:[],next:1,day:today()};
+var cart=[];
+function today(){return new Date().toISOString().slice(0,10)}
+function load(){try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);if(o&&o.veg)state=o}}catch(e){}
+  if(state.day!==today()){state.bills=[];state.next=1;state.day=today()}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function $(id){return document.getElementById(id)}
+function money(n){return "₹"+(Math.round(n*100)/100)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function find(name){name=name.trim().toLowerCase();for(var i=0;i<state.veg.length;i++)if(state.veg[i].name.toLowerCase()===name)return state.veg[i];return null}
+function inCart(name){var q=0;cart.forEach(function(c){if(c.name===name)q+=c.qty});return q}
+function say(id,text,kind){var e=$(id);e.textContent=text;e.className="msg "+(kind||"")}
+
+function render(){
+  var sb=$("stockBody");sb.innerHTML="";
+  if(!state.veg.length)sb.innerHTML='<tr><td colspan="4" class="empty">No vegetables yet. Add one above.</td></tr>';
+  state.veg.forEach(function(v,i){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+esc(v.name)+"</td><td class='n'>"+money(v.price)+"</td><td class='n "+(v.stock<5?"low":"")+"'>"+v.stock+"</td><td class='n'><button class='ghost' data-e='"+i+"'>Edit</button> <button class='del' data-d='"+i+"'>Remove</button></td>";
+    sb.appendChild(tr)});
+  var sel=$("oVeg"),keep=sel.value;sel.innerHTML="";
+  state.veg.forEach(function(v){var o=document.createElement("option");o.value=v.name;o.textContent=v.name+" (₹"+v.price+"/kg, "+v.stock+" kg left)";sel.appendChild(o)});
+  if(keep)sel.value=keep;
+  var cb=$("cartBody");cb.innerHTML="";var tot=0;
+  if(!cart.length)cb.innerHTML='<tr><td colspan="5" class="empty">No items yet.</td></tr>';
+  cart.forEach(function(c,i){var t=c.qty*c.price;tot+=t;
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>"+esc(c.name)+"</td><td class='n'>"+c.qty+" kg</td><td class='n'>"+money(c.price)+"</td><td class='n'>"+money(t)+"</td><td><button class='del' data-c='"+i+"'>Remove</button></td>";
+    cb.appendChild(tr)});
+  $("cartTotal").textContent="Total: "+money(tot);
+  var hb=$("histBody");hb.innerHTML="";
+  if(!state.bills.length)hb.innerHTML='<tr><td colspan="4" class="empty">No bills yet today.</td></tr>';
+  state.bills.slice().reverse().forEach(function(b){
+    var tr=document.createElement("tr");
+    tr.innerHTML="<td>#"+b.no+"</td><td>"+esc(b.time)+"</td><td style='white-space:normal'>"+esc(b.items.map(function(x){return x.qty+" kg "+x.name}).join(", "))+"</td><td class='n'>"+money(b.total)+"</td>";
+    hb.appendChild(tr)});
+  var kg=0;state.veg.forEach(function(v){kg+=v.stock});
+  var sales=0;state.bills.forEach(function(b){sales+=b.total});
+  $("sItems").textContent=state.veg.length;$("sKg").textContent=Math.round(kg*100)/100;
+  $("sSales").textContent=money(sales);$("sBills").textContent=state.bills.length;
+}
+
+$("saveVeg").onclick=function(){
+  var n=$("vName").value.trim(),p=parseFloat($("vPrice").value),s=parseFloat($("vStock").value);
+  if(!n||isNaN(p)||isNaN(s)||p<0||s<0){say("stockMsg","Enter a name, a price and a stock amount. Numbers cannot be negative.","err");return}
+  var v=find(n);
+  if(v){v.price=p;v.stock=s;say("stockMsg",v.name+" updated.","ok")}
+  else{state.veg.push({name:n,price:p,stock:s});say("stockMsg",n+" added.","ok")}
+  $("vName").value=$("vPrice").value=$("vStock").value="";save();render()};
+$("stockBody").onclick=function(e){
+  var d=e.target.getAttribute("data-d"),ed=e.target.getAttribute("data-e");
+  if(d!==null){var v=state.veg[d];state.veg.splice(d,1);cart=cart.filter(function(c){return c.name!==v.name});save();render()}
+  if(ed!==null){var w=state.veg[ed];$("vName").value=w.name;$("vPrice").value=w.price;$("vStock").value=w.stock;$("vPrice").focus()}};
+
+$("addItem").onclick=function(){
+  var v=find($("oVeg").value),q=parseFloat($("oQty").value);
+  if(!v){say("orderMsg","Add a vegetable to your stock first.","err");return}
+  if(isNaN(q)||q<=0){say("orderMsg","Enter a quantity greater than 0.","err");return}
+  var left=v.stock-inCart(v.name);
+  if(q>left){say("orderMsg","Stock is insufficient for "+v.name+". You asked for "+q+" kg but only "+left+" kg is available.","err");return}
+  var ex=cart.filter(function(c){return c.name===v.name})[0];
+  if(ex)ex.qty+=q;else cart.push({name:v.name,qty:q,price:v.price});
+  say("orderMsg",q+" kg "+v.name+" added.","ok");render()};
+$("cartBody").onclick=function(e){var c=e.target.getAttribute("data-c");if(c!==null){cart.splice(c,1);render()}};
+$("clearCart").onclick=function(){cart=[];say("orderMsg","");render()};
+
+$("makeBill").onclick=function(){
+  if(!cart.length){say("orderMsg","Add at least one item first.","err");return}
+  for(var i=0;i<cart.length;i++){var v=find(cart[i].name);
+    if(!v||cart[i].qty>v.stock){say("orderMsg","Stock is insufficient for "+cart[i].name+". Remove it or change the quantity.","err");return}}
+  var total=0,lines=[];
+  cart.forEach(function(c){var v=find(c.name);v.stock=Math.round((v.stock-c.qty)*100)/100;var t=c.qty*c.price;total+=t;
+    lines.push(c.name.padEnd(10)+" "+(c.qty+" kg").padEnd(7)+"× ₹"+c.price+" = "+money(t))});
+  var now=new Date(),time=now.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  var no=state.next++;
+  state.bills.push({no:no,time:time,items:cart.map(function(c){return{name:c.name,qty:c.qty}}),total:total});
+  var bar="----------------------------------";
+  var txt="------ VEGETABLE STALL BILL ------\nBill no. "+no+"   "+now.toLocaleDateString()+" "+time+"\n"+bar+"\n"+lines.join("\n")+"\n"+bar+"\nTotal Bill = "+money(total)+"\n"+bar+"\nThank you! Visit again.";
+  $("billBox").innerHTML='<div class="bill" id="bill">'+esc(txt)+'</div>';
+  $("printBill").hidden=false;
+  cart=[];say("orderMsg","Bill #"+no+" created. Stock updated.","ok");save();render()};
+$("printBill").onclick=function(){window.print()};
+$("resetAll").onclick=function(){
+  if(!confirm("Reset all vegetables and bills to the starter data?"))return;
+  state={veg:[{name:"Tomato",price:40,stock:25},{name:"Onion",price:50,stock:30},{name:"Potato",price:35,stock:40}],bills:[],next:1,day:today()};
+  cart=[];$("billBox").innerHTML='<p class="empty">The bill appears here after you confirm an order.</p>';$("printBill").hidden=true;save();render()};
+
+load();render();
+})();
+</script>
+</body>
+</html>
